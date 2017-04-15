@@ -33,28 +33,54 @@ en0: flags=8863<UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST> mtu 1500
 
 describe('start', () => {
   let proc;
+  let networksetupCleanup;
+  let ifconfigCleanup;
+  let networksetupInitCalled;
+  let networksetupCleanCalled;
+  let networksetupOffCalled;
+
+  beforeEach(() => {
+    proc = null;
+    networksetupCleanup = null;
+    ifconfigCleanup = null;
+    networksetupInitCalled = false;
+    networksetupCleanCalled = false;
+    networksetupOffCalled = false;
+  });
 
   afterEach(() => {
     proc.kill('SIGINT');
   });
 
+  afterEach(async () => {
+    networksetupCleanup();
+    ifconfigCleanup();
+  });
+
   const e2eServerPort = 4300;
-  let networksteupCalled = false;
 
   before(done => {
     const app = express()
-      .use((req, res) => {
-        networksteupCalled = true;
+      .get('/init', (req, res) => {
+        networksetupInitCalled = true;
+        res.send('');
+      })
+      .get('/clean', (req, res) => {
+        networksetupCleanCalled = true;
+        res.send('');
+      })
+      .get('/off', (req, res) => {
+        networksetupOffCalled = true;
         res.send('');
       })
       .listen(e2eServerPort, done);
   });
 
-  it('should override network settings with web proxy settings', async () => {
+  it('should override network settings with web proxy settings and cleanup after termination', async () => {
     const domain = 'localhost';
     const portnumber = '7373';
 
-    const networksetupCleanup = await mockBin(
+    networksetupCleanup = await mockBin(
       'networksetup',
       'node',
       `const fs = require('fs');
@@ -63,11 +89,15 @@ describe('start', () => {
       if (process.argv[2] === '-listnetworkserviceorder') {
         console.log(\`${networksetupOutput}\`);
       } else if (process.argv.slice(2).join(' ') === 'setwebproxy ${networkservicePort} ${domain} ${portnumber}') {
-        http.get('http://localhost:${e2eServerPort}');
+        http.get('http://localhost:${e2eServerPort}/init');
+      } else if (process.argv.slice(2).join(' ') === 'setwebproxy ${networkservicePort}  ') {
+        http.get('http://localhost:${e2eServerPort}/clean');
+      } else if (process.argv.slice(2).join(' ') === 'setwebproxystate ${networkservicePort} off') {
+        http.get('http://localhost:${e2eServerPort}/off');
       }`
     );
 
-    const ifconfigCleanup = await mockBin(
+    ifconfigCleanup = await mockBin(
       'ifconfig',
       'node',
       `if (process.argv[2] === '${networksetupDevice}') { console.log(\`${ifconfigOutput}\`) }`
@@ -75,8 +105,15 @@ describe('start', () => {
 
     proc = exec('node ./index.js start');
 
+    await eventually(() => {
+      expect(networksetupInitCalled).to.equal(true);
+    });
+
+    proc.kill('SIGINT');
+
     return eventually(() => {
-      expect(networksteupCalled).to.equal(true);
+      expect(networksetupCleanCalled).to.equal(true);
+      expect(networksetupOffCalled).to.equal(true);
     });
   });
 });
