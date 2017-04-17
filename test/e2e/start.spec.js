@@ -1,10 +1,9 @@
 'use strict';
 
-const fs = require('fs');
-const {exec} = require('child_process');
-const mockBin = require('mock-bin');
-const {expect} = require('chai');
+const { exec } = require('child_process');
 const express = require('express');
+const { expect } = require('chai');
+const mockBin = require('mock-bin');
 const eventually = require('wix-eventually');
 
 const networksetupDevice = 'en0';
@@ -24,12 +23,12 @@ An asterisk (*) denotes that a network service is disabled.
 
 const ifconfigOutput = `
 en0: flags=8863<UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST> mtu 1500
-	ether 60:f8:1d:c1:97:4e
-	inet6 fe80::62f8:1dff:fec1:974e%en0 prefixlen 64 scopeid 0x4
-	inet 10.0.0.2 netmask 0xffffff00 broadcast 10.0.0.255
-	nd6 options=1<PERFORMNUD>
-	media: autoselect
-	status: active`;
+  ether 60:f8:1d:c1:97:4e
+  inet6 fe80::62f8:1dff:fec1:974e%en0 prefixlen 64 scopeid 0x4
+  inet 10.0.0.2 netmask 0xffffff00 broadcast 10.0.0.255
+  nd6 options=1<PERFORMNUD>
+  media: autoselect
+  status: active`;
 
 describe('start', () => {
   let proc;
@@ -59,8 +58,8 @@ describe('start', () => {
 
   const e2eServerPort = 4300;
 
-  before(done => {
-    const app = express()
+  before(() => {
+    express()
       .get('/init', (req, res) => {
         networksetupInitCalled = true;
         res.send('');
@@ -73,7 +72,7 @@ describe('start', () => {
         networksetupOffCalled = true;
         res.send('');
       })
-      .listen(e2eServerPort, done);
+      .listen(e2eServerPort);
   });
 
   it('should override network settings with web proxy settings and cleanup after termination', async () => {
@@ -103,7 +102,7 @@ describe('start', () => {
       `if (process.argv[2] === '${networksetupDevice}') { console.log(\`${ifconfigOutput}\`) }`
     );
 
-    proc = exec('node ./index.js start');
+    proc = exec('./index.js start');
 
     await eventually(() => {
       expect(networksetupInitCalled).to.equal(true);

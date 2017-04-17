@@ -7,7 +7,7 @@
   "license": "MIT",
   "scripts": {
     "test": "mocha",
-    "e2e": "mocha test/e2e/**/*.spec.js",
+    "e2e": "mocha --harmony test/e2e/**/*.spec.js",
     "lint": "eslint ."
   },
   "bin": {
