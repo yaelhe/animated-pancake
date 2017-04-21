@@ -103,7 +103,7 @@ describe('start', () => {
     }
   });
 
-  afterEach(async () => {
+  afterEach(() => {
     networksetupCleanup();
     ifconfigCleanup();
   });
@@ -150,13 +150,18 @@ describe('start', () => {
   it('should serve files that match the --override path', async () => {
     const filepath = await tempWrite('hello world', 'myfile');
 
-    proc = exec(`./index.js start --override /hello ${filepath}`);
+    proc = exec(`./index.js start --override http://wix.com/ ${filepath}`);
 
     await eventually(() => {
       expect(networksetupInitCalled).to.equal(true);
     });
 
-    const response = await request('http://localhost:7373/hello');
+    const response = await request({
+      url: 'http://localhost:7373',
+      headers: {
+        Host: 'wix.com'
+      }
+    });
 
     expect(response).to.eql('hello world');
   });
