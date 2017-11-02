@@ -131,14 +131,16 @@ describe('start', () => {
     });
 
     express()
-      .use((req, res) => {
-        serverRedirectCalled = true;
+      .get('/blah', (req, res) => {
+        if (req.query.foo === 'bar') {
+          serverRedirectCalled = true;
+        }
         res.send('');
       })
       .listen(9000);
 
     await request({
-      url: 'http://localhost:7373',
+      url: 'http://localhost:7373/blah?foo=bar',
       headers: {
         Host: 'localhost:9000'
       }
@@ -150,14 +152,14 @@ describe('start', () => {
   it('should serve files that match the --override path', async () => {
     const filepath = await tempWrite('hello world', 'myfile');
 
-    proc = exec(`./index.js start --override http://wix.com/ ${filepath}`);
+    proc = exec(`./index.js start --override http://wix.com/blah?foo=bar ${filepath}`);
 
     await eventually(() => {
       expect(networksetupInitCalled).to.equal(true);
     });
 
     const response = await request({
-      url: 'http://localhost:7373',
+      url: 'http://localhost:7373/blah?foo=bar',
       headers: {
         Host: 'wix.com'
       }
